@@ -1,0 +1,20 @@
+{
+  "name": "rss_project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "client-sessions": "^0.8.0",
+    "express": "^4.17.1",
+    "express-validator": "^6.6.0",
+    "mysql": "^2.18.1",
+    "pug": "^3.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "author": "John Widmaier",
+  "license": "ISC"
+}

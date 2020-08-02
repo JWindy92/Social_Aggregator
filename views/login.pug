@@ -1,0 +1,25 @@
+html
+    head
+        title=title
+    body
+        navbar
+            a(href="/") Home
+            a(href="/login") Login
+            a(href="/register") Sign Up
+
+        h1=message
+
+        form(action="/login" method="post")
+            div
+                h3 Login
+            .container
+                label(for="username") Email: 
+                input(type="text" placeholder="Enter Email" name="email" required)
+                br
+
+                label(for="password") Password: 
+                input(type="text" placeholder="Enter Password" name="password" required)
+                br
+
+                button(type="submit") Login
+        
