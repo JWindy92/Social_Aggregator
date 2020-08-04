@@ -1,0 +1,11 @@
+html
+    head
+        title=title
+    body
+        h1=feed.title
+        ul
+            each item in feed.items
+                li
+                    div
+                        h3=item.title
+                        a(href=item.link) #{item.link}

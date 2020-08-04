@@ -5,6 +5,8 @@ const { body, validationResult } = require('express-validator/check');
 const { sanitzeBody } = require('express-validator/filter');
 const session = require('client-sessions');
 const fs = require('fs');
+const Parser = require('rss-parser');
+const parser = new Parser();
 
 const User = require('./models/user')
 
@@ -35,13 +37,32 @@ app.use(session({
 
 // MIDDLEWARE #######################
 function protect_route(req, res, next) {
-    if (!session.current_user || current_user.is_authenticated == false) {
+    if (!session.current_user || session.current_user.is_authenticated == false) {
         console.log('not logged in, denied')
         res.redirect('/')
     } else {
         next();
     }
 }
+
+// function get_feed(req, res, next) {
+//     let feed = await parser.parseURL('http://feeds.feedburner.com/ScottHanselman')
+//     console.log(feed)
+// }
+
+async function get_feed(req, res, next) {
+
+    let feed = await parser.parseURL('https://www.reddit.com/.rss');
+    if(feed){
+        // console.log(feed)
+        req.feed = feed;
+        next();
+    } else {
+        // handle unforseen error
+        console.log("Feed not found")
+    }
+};
+
 
 // ROUTES #######################
 app.get('/', (req, res) => {
@@ -101,9 +122,14 @@ app.get('/validate', (req, res) => {
 });
 
 // PROTECTED ROUTES 
+app.get('/feed', get_feed, (req, res) => {
+    console.log(req.feed.title)
+    res.render('feed', {feed: req.feed})
+})
 
-app.get('/test', protect_route, (req, res) => {
-    res.send('You made it to test!!')
+
+app.get('/test', get_feed, (req, res) => {
+    res.render('index')
 })
 
 

@@ -1,3 +1,5 @@
 /.vscode
 /node_modules
+/ignore
+/test_data
 package-lock.json

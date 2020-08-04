@@ -29,7 +29,8 @@ class User {
             console.log(db_result)
             this.username = db_result.username;
             this.salt = db_result.salt;
-            this.password_hash = db_result.password_hash
+            this.password_hash = db_result.password_hash;
+            this.is_authenticated = true;
             return true
         } else {
             console.log("Invalid username or password!")
