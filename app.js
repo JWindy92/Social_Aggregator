@@ -1,28 +1,26 @@
 const express = require('express');
 const pug = require('pug');
-const mysql = require('mysql');
+//! const mysql = require('mysql');
 const { body, validationResult } = require('express-validator/check');
 const { sanitzeBody } = require('express-validator/filter');
 const session = require('client-sessions');
-const fs = require('fs');
-const Parser = require('rss-parser');
-const parser = new Parser();
-
-const User = require('./models/user')
+//! const fs = require('fs');
+//! const Parser = require('rss-parser');
+//! const parser = new Parser();
 
 const port = 3000;
 // C:\Users\johnw\OneDrive\Documents\Credentials\RSS_Project_creds\mysql_creds.json
-db_creds = JSON.parse(fs.readFileSync('C:\\Users\\johnw\\OneDrive\\Documents\\Credentials\\RSS_Project_creds\\mysql_creds.json'));
+// db_creds = JSON.parse(fs.readFileSync('C:\\Users\\johnw\\OneDrive\\Documents\\Credentials\\RSS_Project_creds\\mysql_creds.json'));
 
-let con = mysql.createConnection(db_creds)
+// let con = mysql.createConnection(db_creds)
 
-con.connect((err) => {
-    if (err) throw err;
-    console.log('Connected to dev_db!')
-    con.query("CREATE DATABASE IF NOT EXISTS dev_db", (err, result) => {
-        if (err) throw err;
-    });
-})
+// con.connect((err) => {
+//     if (err) throw err;
+//     console.log('Connected to dev_db!')
+//     con.query("CREATE DATABASE IF NOT EXISTS dev_db", (err, result) => {
+//         if (err) throw err;
+//     });
+// })
 
 const app = express();
 app.set('view engine', 'pug')
@@ -35,6 +33,11 @@ app.use(session({
     activeDuration: 5 * 60 * 1000, // if expiresIn < activeDuration, session extended by activeDuration
 }));
 
+
+const User = require('./models/user')
+const feed = require('./public/scripts/feed')
+const db = require('./public/scripts/db')
+
 // MIDDLEWARE #######################
 function protect_route(req, res, next) {
     if (!session.current_user || session.current_user.is_authenticated == false) {
@@ -44,25 +47,6 @@ function protect_route(req, res, next) {
         next();
     }
 }
-
-// function get_feed(req, res, next) {
-//     let feed = await parser.parseURL('http://feeds.feedburner.com/ScottHanselman')
-//     console.log(feed)
-// }
-
-async function get_feed(req, res, next) {
-
-    let feed = await parser.parseURL('https://www.reddit.com/.rss');
-    if(feed){
-        // console.log(feed)
-        req.feed = feed;
-        next();
-    } else {
-        // handle unforseen error
-        console.log("Feed not found")
-    }
-};
-
 
 // ROUTES #######################
 app.get('/', (req, res) => {
@@ -80,7 +64,7 @@ app.get('/login', (req, res) => {
 
 app.post('/login', (req, res) => {
     let sql = `SELECT * FROM Users WHERE email = ?`;
-    con.query(sql, [req.body.email], (err, result, fields) => {
+    db.con.query(sql, [req.body.email], (err, result, fields) => {
         if (err) throw err;
         console.log(result[0])
         u = new User(result[0].username, result[0].email)
@@ -112,9 +96,23 @@ app.post('/register', [
         } else {
             let u = new User(req.body.email)
             u.setPassword(req.body.password)
-            u.save(con)
+            u.save(db.con)
             res.redirect('/')
         }
+})
+
+app.post('/follow_feed', (req, res) => {
+    console.log(req.body.rss_url);
+    let sql = 'SELECT feed_id FROM feeds WHERE url = ' + mysql.escape(req.body.rss_url)
+    db.con.query(sql, (err, result) => {
+        if (err) throw err;
+        if (result.length < 1) {
+            console.log('not found')
+        } else {
+            console.log('FOUND')
+        }
+    })
+    res.redirect('/');
 })
 
 app.get('/validate', (req, res) => {
@@ -122,14 +120,23 @@ app.get('/validate', (req, res) => {
 });
 
 // PROTECTED ROUTES 
-app.get('/feed', get_feed, (req, res) => {
-    console.log(req.feed.title)
+app.get('/feed', feed.get_feed, (req, res) => {
+    console.log(req.feed)
     res.render('feed', {feed: req.feed})
 })
 
+function test_callback(exists) {
+    console.log('done')
+    return true
+}
 
-app.get('/test', get_feed, (req, res) => {
+app.get('/test', feed.get_feed, (req, res) => {
+    console.log(db.check_for_user('1', test_callback))
     res.render('index')
+})
+
+app.get('/browse', (req, res) => {
+    res.render('browse');
 })
 
 

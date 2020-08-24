@@ -1,0 +1,17 @@
+include mixins/_navbar
+
+html
+    head
+        title=title
+    body
+        +navigation()
+
+        form(action="/follow_feed" method="post")
+            div
+                h3 Follow Feed
+            .container
+                label(for="username") Feed URL: 
+                input(type="text" placeholder="Enter URL" name="rss_url" required)
+                br
+
+                button(type="submit") Follow

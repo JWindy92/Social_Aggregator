@@ -1,11 +1,10 @@
+include mixins/_navbar
+
 html
     head
         title=title
     body
-        navbar
-            a(href="/") Home
-            a(href="/login") Login
-            a(href="/register") Sign Up
+        +navigation()
     
         if current_user
             h1 Hello #{current_user.username}!!!

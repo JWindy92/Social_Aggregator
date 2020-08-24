@@ -1,11 +1,13 @@
+include mixins/_navbar
+
 html
     head
         title=title
     body
-        h1=feed.title
+        +navigation()
         ul
-            each item in feed.items
+            each item in feed
                 li
                     div
-                        h3=item.title
+                        h3 #{item.title} : #{item.feed_title}
                         a(href=item.link) #{item.link}
