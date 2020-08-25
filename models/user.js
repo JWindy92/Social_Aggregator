@@ -8,7 +8,7 @@ class User {
         this.is_authenticated = false;
     }
 
-    save(con) {
+    save(conn) {
         let sql = `INSERT INTO Users (username, email, password_hash, salt, is_authenticated) VALUES (?, ?, ?, ?, ?)`
         let values = [
             this.username,
@@ -17,10 +17,12 @@ class User {
             this.salt,
             this.is_authenticated,
         ]
-        con.query(sql, values, (err, result) => {
+        conn.query(sql, values, (err, result) => {
             if (err) throw err;
             console.log("# rows affected: " + result.affectedRows)
         })
+
+        conn.release();
     }
 
     load(db_result, password) {

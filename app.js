@@ -18,7 +18,6 @@ app.use(session({
     activeDuration: 5 * 60 * 1000, // if expiresIn < activeDuration, session extended by activeDuration
 }));
 
-
 const User = require('./models/user')
 const feed = require('./public/scripts/feed')
 const db = require('./public/scripts/db')
@@ -50,26 +49,30 @@ app.get('/login', (req, res) => {
 
 app.post('/login', (req, res) => {
     let sql = `SELECT * FROM Users WHERE email = ?`;
-    db.con.query(sql, [req.body.email], (err, result, fields) => {
-        if (err) throw err;
-        console.log(result[0])
-        u = new User(result[0].username, result[0].email)
-        let logged_in = u.load(result[0], req.body.password)
-        if (logged_in) {
-            console.log('Login successful')
-            session.current_user = u;
-            session.user_id = result[0].user_id
-            if (session.redirectTo) {
-                res.redirect(session.redirectTo)
-                session.redirectTo = null
+    db.pool.getConnection((err, conn) => {
+        conn.query(sql, [req.body.email], (err, result, fields) => {
+            if (err) throw err;
+            console.log(result[0])
+            u = new User(result[0].username, result[0].email)
+            let logged_in = u.load(result[0], req.body.password)
+            if (logged_in) {
+                console.log('Login successful')
+                session.current_user = u;
+                session.user_id = result[0].user_id
+                if (session.redirectTo) {
+                    res.redirect(session.redirectTo)
+                    session.redirectTo = null
+                } else {
+                    res.redirect('/');
+                }
             } else {
-                res.redirect('/');
+                console.log("Login failed")
+                res.redirect('/login');
             }
-        } else {
-            console.log("Login failed")
-            res.redirect('/login');
-        }
-    });
+        });
+        conn.release();
+    })
+    
 })
 
 app.get('/logout', (req, res) => {
@@ -93,7 +96,11 @@ app.post('/register', [
         } else {
             let u = new User(req.body.email)
             u.setPassword(req.body.password)
-            u.save(db.con)
+            db.pool.getConnection((err, conn) => {
+                if (err) throw err;
+                u.save(conn)
+                
+            })
             res.redirect('/')
         }
 })
@@ -101,35 +108,39 @@ app.post('/register', [
 app.post('/follow_feed', (req, res) => {
     console.log(req.body.rss_url);
     let sql = 'SELECT feed_id FROM feeds WHERE url = ' + mysql.escape(req.body.rss_url)
-    db.con.query(sql, (err, result) => {
-        if (err) throw err;
-        if (result.length < 1) {
-            //TODO: Validate URL
-            //* Add feed to feeds
-            sql = 'INSERT INTO feeds (url) VALUES (' + mysql.escape(req.body.rss_url) + ')'
-            db.con.query(sql, (err, result) => {
-                if (err) throw err;
-                console.log("# rows affected: " + result.affectedRows)
+    db.pool.getConnection((err, conn) => {
+        conn.query(sql, (err, result) => {
+            if (err) throw err;
+            if (result.length < 1) {
+                //TODO: Validate URL
+                //* Add feed to feeds
+                sql = 'INSERT INTO feeds (url) VALUES (' + mysql.escape(req.body.rss_url) + ')'
+                conn.query(sql, (err, result) => {
+                    if (err) throw err;
+                    console.log("# rows affected: " + result.affectedRows)
 
-                //* Add follow to user_feeds
-                db.follow_feed(session.user_id, result.insertId)
-            })
-            res.redirect('/browse')
-        } else {
-            //* Check if user already follows feed
-            sql = "SELECT * FROM user_feeds WHERE user_id = " + mysql.escape(session.user_id) + " AND feed_id = " + mysql.escape(result[0].feed_id)
-            db.con.query(sql, (err, result) => {
-                if (err) throw err;
-                if (result.length > 0) {
-                    console.log('Already following!')
-                    res.redirect('/')
-                } else {
                     //* Add follow to user_feeds
-                    db.follow_feed(session.user_id, result[0].feed_id)
-                }
-            })
-        }
-    })
+                    db.follow_feed(session.user_id, result.insertId)
+                })
+                res.redirect('/browse')
+            } else {
+                //* Check if user already follows feed
+                let feed_id = result[0].feed_id
+                sql = "SELECT * FROM user_feeds WHERE user_id = " + mysql.escape(session.user_id) + " AND feed_id = " + mysql.escape(result[0].feed_id)
+                conn.query(sql, (err, result) => {
+                    if (err) throw err;
+                    if (result.length > 0) {
+                        console.log('Already following!')
+                        res.redirect('/')
+                    } else {
+                        //* Add follow to user_feeds
+                        db.follow_feed(session.user_id, feed_id)
+                    }
+                })
+            }
+        })
+        conn.release();
+    }) 
 })
 
 app.get('/validate', (req, res) => {
