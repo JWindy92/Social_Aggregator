@@ -22,34 +22,5 @@ function follow_feed(user_id, feed_id) {
     })
 }
 
-function check_for_user(user_id, callback) {
-    let sql = 'SELECT * FROM users WHERE user_id = ' + mysql.escape(user_id)
-    con.query(sql, (err, result) => {
-        if (err) throw err;
-        if (!(result.length < 1)) {
-            return callback(true)
-        } else {
-            return callback(false)
-        }
-    })
-    
-}
 
-function test_callback(test_var) {
-    return true;
-}
-// function subscribe(feed_id, user_id) {
-    
-//         sql = 'INSERT INTO user_feeds (user_id, feed_id) VALUES (?, ?)'
-//         let values = [
-//             user.id,
-//             feed_id
-//         ]
-//         con.quert(sql, values, (err, result) => {
-//             if (err) throw err;
-//             console.log("# rows affected: " + result.affectedRows)
-//         })
-//     }
-
-
-module.exports = {"con" : con, "follow_feed" : follow_feed, "check_for_user" : check_for_user}
+module.exports = {"con" : con, "follow_feed" : follow_feed}

@@ -4,23 +4,8 @@ const mysql = require('mysql');
 const { body, validationResult } = require('express-validator/check');
 const { sanitzeBody } = require('express-validator/filter');
 const session = require('client-sessions');
-//! const fs = require('fs');
-//! const Parser = require('rss-parser');
-//! const parser = new Parser();
 
 const port = 3000;
-// C:\Users\johnw\OneDrive\Documents\Credentials\RSS_Project_creds\mysql_creds.json
-// db_creds = JSON.parse(fs.readFileSync('C:\\Users\\johnw\\OneDrive\\Documents\\Credentials\\RSS_Project_creds\\mysql_creds.json'));
-
-// let con = mysql.createConnection(db_creds)
-
-// con.connect((err) => {
-//     if (err) throw err;
-//     console.log('Connected to dev_db!')
-//     con.query("CREATE DATABASE IF NOT EXISTS dev_db", (err, result) => {
-//         if (err) throw err;
-//     });
-// })
 
 const app = express();
 app.set('view engine', 'pug')
@@ -42,6 +27,7 @@ const db = require('./public/scripts/db')
 function protect_route(req, res, next) {
     if (!session.current_user || session.current_user.is_authenticated == false) {
         console.log('not logged in, denied')
+        session.redirectTo = req.originalUrl
         res.redirect('/login')
     } else {
         next();
@@ -73,12 +59,22 @@ app.post('/login', (req, res) => {
             console.log('Login successful')
             session.current_user = u;
             session.user_id = result[0].user_id
-            res.redirect('/');
+            if (session.redirectTo) {
+                res.redirect(session.redirectTo)
+                session.redirectTo = null
+            } else {
+                res.redirect('/');
+            }
         } else {
             console.log("Login failed")
             res.redirect('/login');
         }
     });
+})
+
+app.get('/logout', (req, res) => {
+    session.current_user = null;
+    res.redirect('/')
 })
 
 app.get('/register', (req, res) => {

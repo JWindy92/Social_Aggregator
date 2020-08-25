@@ -1,12 +1,6 @@
 let Parser = require('rss-parser');
 let parser = new Parser();
 
-//! let feed_arr = ['https://www.reddit.com/.rss', 'https://threatpost.com/feed']
-
-async function check_feed(req, res, next) {
-    let url = req.rss_url;
-}
-
 async function get_feed(req, res, next) {
     let feed_arr = ['https://www.reddit.com/.rss', 'https://threatpost.com/feed']
     let feed = []
@@ -28,6 +22,7 @@ async function get_feed(req, res, next) {
 
 };
 
+//* Start quick sort
 function swap(items, leftIndex, rightIndex) {
     var temp = items[leftIndex];
     items[leftIndex] = items[rightIndex];
@@ -76,12 +71,7 @@ function quick_sort(items, left, right) {
     return items;
 }
   
-
-//! May not need
-function feed_callback(result) {
-    let sorted_feed = quick_sort(result, 0, result.length - 1);
-    console.log(sorted_feed.reverse()); //* reversing feed so most recent are first
-}
+//* End quick sort
 
 module.exports = {
     'get_feed' : get_feed,
