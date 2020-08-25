@@ -13,35 +13,13 @@ con.connect((err) => {
     });
 })
 
-//* https://stackoverflow.com/questions/31775177/nodejs-and-mysql-wait-for-query-result
-function executeQuery(sql, callback) {
-    if (con) {
-        con.query(sql, (err, result, fields) => {
-            if (err) {
-                return callback(err, null);
-            }
-            return callback(null, result);
-        })
-    } else {
-        return callback(true, "No Connection")
-    }
-}
-
-function check_for_feed(req, res, next) {
-    let sql = 'SELECT feed_id FROM feeds WHERE url = ' + mysql.escape(req.body.rss_url)
-    let user = req.session.current_user;
-    con.query(sql, (err, result) => {
+function follow_feed(user_id, feed_id) {
+    let sql = 'INSERT INTO user_feeds (user_id, feed_id) VALUES (?, ?)'
+    console.log(`Inserting (${user_id}, ${feed_id}) into user_feeds`)
+    db.con.query(sql, [user_id, feed_id], (err, result) => {
         if (err) throw err;
-        if (result.length < 1) {
-            console.log('not found')
-            //TODO: validate url, add to db, then subscribe
-        } else {
-            console.log('FOUND')
-            console.log(user)
-            subscribe(result[0].feed_id, user);
-        }
+        console.log("# rows affected: " + result.affectedRows)
     })
-    next();
 }
 
 function check_for_user(user_id, callback) {
@@ -74,4 +52,4 @@ function test_callback(test_var) {
 //     }
 
 
-module.exports = {"con" : con, "check_for_user" : check_for_user}
+module.exports = {"con" : con, "follow_feed" : follow_feed, "check_for_user" : check_for_user}

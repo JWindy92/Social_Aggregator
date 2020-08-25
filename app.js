@@ -1,6 +1,6 @@
 const express = require('express');
 const pug = require('pug');
-//! const mysql = require('mysql');
+const mysql = require('mysql');
 const { body, validationResult } = require('express-validator/check');
 const { sanitzeBody } = require('express-validator/filter');
 const session = require('client-sessions');
@@ -42,7 +42,7 @@ const db = require('./public/scripts/db')
 function protect_route(req, res, next) {
     if (!session.current_user || session.current_user.is_authenticated == false) {
         console.log('not logged in, denied')
-        res.redirect('/')
+        res.redirect('/login')
     } else {
         next();
     }
@@ -72,6 +72,7 @@ app.post('/login', (req, res) => {
         if (logged_in) {
             console.log('Login successful')
             session.current_user = u;
+            session.user_id = result[0].user_id
             res.redirect('/');
         } else {
             console.log("Login failed")
@@ -107,12 +108,32 @@ app.post('/follow_feed', (req, res) => {
     db.con.query(sql, (err, result) => {
         if (err) throw err;
         if (result.length < 1) {
-            console.log('not found')
+            //TODO: Validate URL
+            //* Add feed to feeds
+            sql = 'INSERT INTO feeds (url) VALUES (' + mysql.escape(req.body.rss_url) + ')'
+            db.con.query(sql, (err, result) => {
+                if (err) throw err;
+                console.log("# rows affected: " + result.affectedRows)
+
+                //* Add follow to user_feeds
+                db.follow_feed(session.user_id, result.insertId)
+            })
+            res.redirect('/browse')
         } else {
-            console.log('FOUND')
+            //* Check if user already follows feed
+            sql = "SELECT * FROM user_feeds WHERE user_id = " + mysql.escape(session.user_id) + " AND feed_id = " + mysql.escape(result[0].feed_id)
+            db.con.query(sql, (err, result) => {
+                if (err) throw err;
+                if (result.length > 0) {
+                    console.log('Already following!')
+                    res.redirect('/')
+                } else {
+                    //* Add follow to user_feeds
+                    db.follow_feed(session.user_id, result[0].feed_id)
+                }
+            })
         }
     })
-    res.redirect('/');
 })
 
 app.get('/validate', (req, res) => {
@@ -120,22 +141,16 @@ app.get('/validate', (req, res) => {
 });
 
 // PROTECTED ROUTES 
-app.get('/feed', feed.get_feed, (req, res) => {
+app.get('/feed', [protect_route, feed.get_feed], (req, res) => {
     console.log(req.feed)
     res.render('feed', {feed: req.feed})
 })
 
-function test_callback(exists) {
-    console.log('done')
-    return true
-}
-
 app.get('/test', feed.get_feed, (req, res) => {
-    console.log(db.check_for_user('1', test_callback))
     res.render('index')
 })
 
-app.get('/browse', (req, res) => {
+app.get('/browse', protect_route, (req, res) => {
     res.render('browse');
 })
 
