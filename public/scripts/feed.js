@@ -1,5 +1,21 @@
 let Parser = require('rss-parser');
 let parser = new Parser();
+// let http = require('http');
+
+// function validate_url(url) {
+//     let options = {
+//         method: 'HEAD',
+//         host : url,
+//         port : 80,
+//         path : url
+//     };
+//     let retVal = false;
+//     var req = http.request(options, function(r) {
+//         retVal = (r.statusCode == 200);
+//     })
+//     req.end();
+//     return retVal;
+// }
 
 async function get_feed(req, res, next) {
     let feed_arr = ['https://www.reddit.com/.rss', 'https://threatpost.com/feed']

@@ -9,12 +9,16 @@
     "express-validator": "^6.6.0",
     "mysql": "^2.18.1",
     "pug": "^3.0.0",
-    "rss-parser": "^3.9.0"
+    "rss-parser": "^3.9.0",
+    "url-exists": "^1.0.3"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "mocha": "^8.1.1"
+  },
   "scripts": {
-    "test": "nodemon app.js",
-    "start": "node app.js"
+    "test": "mocha",
+    "start": "node app.js",
+    "demon": "nodemon app.js"
   },
   "author": "John Widmaier",
   "license": "ISC"

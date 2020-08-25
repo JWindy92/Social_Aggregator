@@ -4,6 +4,7 @@ const mysql = require('mysql');
 const { body, validationResult } = require('express-validator/check');
 const { sanitzeBody } = require('express-validator/filter');
 const session = require('client-sessions');
+const urlExists = require('url-exists');
 
 const port = 3000;
 
@@ -107,40 +108,46 @@ app.post('/register', [
 
 app.post('/follow_feed', (req, res) => {
     console.log(req.body.rss_url);
-    let sql = 'SELECT feed_id FROM feeds WHERE url = ' + mysql.escape(req.body.rss_url)
-    db.pool.getConnection((err, conn) => {
-        conn.query(sql, (err, result) => {
-            if (err) throw err;
-            if (result.length < 1) {
-                //TODO: Validate URL
-                //* Add feed to feeds
-                sql = 'INSERT INTO feeds (url) VALUES (' + mysql.escape(req.body.rss_url) + ')'
+    urlExists(('https://' + req.body.rss_url), (err, exists) => {
+        if (exists) {
+            let sql = 'SELECT feed_id FROM feeds WHERE url = ' + mysql.escape(req.body.rss_url)
+            db.pool.getConnection((err, conn) => {
                 conn.query(sql, (err, result) => {
                     if (err) throw err;
-                    console.log("# rows affected: " + result.affectedRows)
+                    if (result.length < 1) {
+                        //* Add feed to feeds
+                        sql = 'INSERT INTO feeds (url) VALUES (' + mysql.escape(req.body.rss_url) + ')'
+                        conn.query(sql, (err, result) => {
+                            if (err) throw err;
+                            console.log("# rows affected: " + result.affectedRows)
 
-                    //* Add follow to user_feeds
-                    db.follow_feed(session.user_id, result.insertId)
-                })
-                res.redirect('/browse')
-            } else {
-                //* Check if user already follows feed
-                let feed_id = result[0].feed_id
-                sql = "SELECT * FROM user_feeds WHERE user_id = " + mysql.escape(session.user_id) + " AND feed_id = " + mysql.escape(result[0].feed_id)
-                conn.query(sql, (err, result) => {
-                    if (err) throw err;
-                    if (result.length > 0) {
-                        console.log('Already following!')
-                        res.redirect('/')
+                            //* Add follow to user_feeds
+                            db.follow_feed(session.user_id, result.insertId)
+                        })
+                        res.redirect('/browse')
                     } else {
-                        //* Add follow to user_feeds
-                        db.follow_feed(session.user_id, feed_id)
+                        //* Check if user already follows feed
+                        let feed_id = result[0].feed_id
+                        sql = "SELECT * FROM user_feeds WHERE user_id = " + mysql.escape(session.user_id) + " AND feed_id = " + mysql.escape(result[0].feed_id)
+                        conn.query(sql, (err, result) => {
+                            if (err) throw err;
+                            if (result.length > 0) {
+                                console.log('Already following!')
+                                res.redirect('/')
+                            } else {
+                                //* Add follow to user_feeds
+                                db.follow_feed(session.user_id, feed_id)
+                            }
+                        })
                     }
                 })
-            }
-        })
-        conn.release();
-    }) 
+                conn.release();
+            }) 
+        } else {
+            console.log('Invalid url')
+            res.redirect('/browse')
+        }
+    });
 })
 
 app.get('/validate', (req, res) => {
