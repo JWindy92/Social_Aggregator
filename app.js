@@ -107,48 +107,49 @@ app.post('/register', [
 })
 
 app.post('/follow_feed', (req, res) => {
-    console.log(req.body.rss_url);
-    urlExists(('https://' + req.body.rss_url), (err, exists) => {
-        if (exists) {
+    Promise.all(feed.check_for_feed(req.body.rss_url)).then(exists => {
+        if (exists.some(feed.check_true)) {
+            //* Check if feed exists in feed Table
             let sql = 'SELECT feed_id FROM feeds WHERE url = ' + mysql.escape(req.body.rss_url)
             db.pool.getConnection((err, conn) => {
                 conn.query(sql, (err, result) => {
                     if (err) throw err;
+                    //* If not
                     if (result.length < 1) {
                         //* Add feed to feeds
-                        sql = 'INSERT INTO feeds (url) VALUES (' + mysql.escape(req.body.rss_url) + ')'
-                        conn.query(sql, (err, result) => {
-                            if (err) throw err;
-                            console.log("# rows affected: " + result.affectedRows)
-
-                            //* Add follow to user_feeds
-                            db.follow_feed(session.user_id, result.insertId)
-                        })
-                        res.redirect('/browse')
+                        db.save_new_feed(req.body.rss_url).then((ret => {
+                            db.follow_feed(session.user_id, ret.insertId).then((ret => {
+                                console.log(ret)
+                            }))
+                        }))
+                        res.redirect('/browse') //TODO: Decide whether to keep this here or move inside .then
+                    //* If so
                     } else {
-                        //* Check if user already follows feed
-                        let feed_id = result[0].feed_id
-                        sql = "SELECT * FROM user_feeds WHERE user_id = " + mysql.escape(session.user_id) + " AND feed_id = " + mysql.escape(result[0].feed_id)
-                        conn.query(sql, (err, result) => {
-                            if (err) throw err;
-                            if (result.length > 0) {
+                        db.check_if_following(session.user_id, result[0].feed_id).then((ret => {
+                            if (ret == true) {
                                 console.log('Already following!')
-                                res.redirect('/')
                             } else {
-                                //* Add follow to user_feeds
-                                db.follow_feed(session.user_id, feed_id)
+                                db.follow_feed(session.user_id, result[0].feed_id).then((ret => {
+                                    console.log('Followed Successfully')
+                                }))
                             }
-                        })
+                        }))
+                        res.redirect('/browse')
                     }
                 })
                 conn.release();
             }) 
         } else {
-            console.log('Invalid url')
+            console.log('invalid url')
             res.redirect('/browse')
         }
-    });
-})
+    }).catch(err => {
+        throw err;
+    })
+//? res.redirect('/browse') redirecting here should be instant
+//? but do I want that? might want to wait for promise to reload page
+});
+
 
 app.get('/validate', (req, res) => {
     res.render('validate')

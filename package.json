@@ -17,7 +17,7 @@
   },
   "scripts": {
     "test": "mocha",
-    "start": "node app.js",
+    "start": "nodemon app.js",
     "demon": "nodemon app.js"
   },
   "author": "John Widmaier",

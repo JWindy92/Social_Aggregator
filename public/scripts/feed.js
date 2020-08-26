@@ -1,21 +1,27 @@
 let Parser = require('rss-parser');
 let parser = new Parser();
-// let http = require('http');
+const urlExists = require('url-exists');
 
-// function validate_url(url) {
-//     let options = {
-//         method: 'HEAD',
-//         host : url,
-//         port : 80,
-//         path : url
-//     };
-//     let retVal = false;
-//     var req = http.request(options, function(r) {
-//         retVal = (r.statusCode == 200);
-//     })
-//     req.end();
-//     return retVal;
-// }
+function check_true(val) {
+    return (val === true)
+}
+
+function check_for_feed(url) {
+    let prefixes = ['', 'http://', 'https://']
+    let results = prefixes.map(pref => validate_url(pref + url))
+    return results
+}
+
+function validate_url(url) {
+    return new Promise((resolve, reject) => {
+        urlExists(url, (err, exists) => {
+            if (err) return reject(err)
+            return (resolve(exists))
+        })
+    })
+}
+
+check_for_feed('www.google.com')
 
 async function get_feed(req, res, next) {
     let feed_arr = ['https://www.reddit.com/.rss', 'https://threatpost.com/feed']
@@ -89,8 +95,11 @@ function quick_sort(items, left, right) {
   
 //* End quick sort
 
+
 module.exports = {
     'get_feed' : get_feed,
-    'quick_sort' : quick_sort
+    'quick_sort' : quick_sort,
+    'check_for_feed' : check_for_feed,
+    'check_true' : check_true
 }
 
