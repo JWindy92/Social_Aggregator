@@ -1,4 +1,5 @@
 const mysql = require('mysql');
+const chalk = require('chalk');
 const fs = require('fs');
 
 db_creds = JSON.parse(fs.readFileSync('C:\\Users\\johnw\\OneDrive\\Documents\\Credentials\\RSS_Project_creds\\mysql_creds.json'));
@@ -7,10 +8,12 @@ let pool = mysql.createPool(db_creds)
 
 pool.getConnection((err, conn) => {
     if (err) throw err;
-    console.log('Connected to dev_db!')
+    console.log(chalk.cyan('[INFO]:'), 'Checking dev_db exists')
     conn.query("CREATE DATABASE IF NOT EXISTS dev_db", (err, result) => {
+        console.log(chalk.cyan('[INFO]:'), 'Successfully created dev_db')
         if (err) throw err;
     });
+    console.log(chalk.cyan('[INFO]:'), 'Database connection successful')
     conn.release();
 })
 

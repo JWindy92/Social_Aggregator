@@ -1,17 +1,18 @@
 const express = require('express');
 const pug = require('pug');
 const mysql = require('mysql');
-const { body, validationResult } = require('express-validator/check');
-const { sanitzeBody } = require('express-validator/filter');
+const { body, validationResult } = require('express-validator');
+const { sanitzeBody } = require('express-validator');
 const session = require('client-sessions');
 const urlExists = require('url-exists');
+const chalk = require('chalk');
 
 const port = 3000;
 
 const app = express();
 app.set('view engine', 'pug')
 app.use(express.static(__dirname + "/public"))
-app.use(express.urlencoded())
+app.use(express.urlencoded( {extended: true }))
 app.use(session({
     cookieName: 'session',
     secret: 'random_string_goes_here',
@@ -37,14 +38,10 @@ function protect_route(req, res, next) {
 // ROUTES #######################
 app.get('/', (req, res) => {
     res.render('index', {title: 'Home', message: 'Hello World!', current_user: session.current_user})
-    if (!session.current_user) {
-        console.log("No current user")
-    } else {
-        console.log(session.current_user)
-    }
 });
 
 app.get('/login', (req, res) => {
+    //TODO: If logged in, redirect to index
     res.render('login', {title: 'Login', message: 'Login Page'})
 });
 
@@ -53,23 +50,28 @@ app.post('/login', (req, res) => {
     db.pool.getConnection((err, conn) => {
         conn.query(sql, [req.body.email], (err, result, fields) => {
             if (err) throw err;
-            console.log(result[0])
-            u = new User(result[0].username, result[0].email)
-            let logged_in = u.load(result[0], req.body.password)
-            if (logged_in) {
-                console.log('Login successful')
-                session.current_user = u;
-                session.user_id = result[0].user_id
-                if (session.redirectTo) {
-                    res.redirect(session.redirectTo)
-                    session.redirectTo = null
+            if (result[0]) {
+                u = new User(result[0].username, result[0].email)
+                let logged_in = u.load(result[0], req.body.password)
+                if (logged_in) {
+                    session.current_user = u;
+                    session.user_id = result[0].user_id
+                    req.app.settings.is_authenticated = true;
+                    if (session.redirectTo) {
+                        res.redirect(session.redirectTo)
+                        session.redirectTo = null
+                    } else {
+                        res.redirect('/');
+                    }
                 } else {
-                    res.redirect('/');
+                    console.log(chalk.red('[ERROR]:'), "Invalid username or password")
+                    res.redirect('/login');
                 }
             } else {
-                console.log("Login failed")
-                res.redirect('/login');
+                console.log(chalk.red('[ERROR]:'), 'User doesnt exist')
+                res.redirect('/login')
             }
+            
         });
         conn.release();
     })
@@ -77,11 +79,14 @@ app.post('/login', (req, res) => {
 })
 
 app.get('/logout', (req, res) => {
+    session.current_user.is_authenticated = false;
     session.current_user = null;
+    session.user_id = null;
     res.redirect('/')
 })
 
 app.get('/register', (req, res) => {
+    //TODO: If logged in, redirect to index
     res.render('register', {title: 'Sign Up', message: 'Register Page'})
 });
 
@@ -122,7 +127,7 @@ app.post('/follow_feed', (req, res) => {
                                 console.log(ret)
                             }))
                         }))
-                        res.redirect('/browse') //TODO: Decide whether to keep this here or move inside .then
+                        res.redirect('/browse')
                     //* If so
                     } else {
                         db.check_if_following(session.user_id, result[0].feed_id).then((ret => {
@@ -152,22 +157,17 @@ app.post('/follow_feed', (req, res) => {
 
 
 app.get('/validate', (req, res) => {
+    //TODO: If logged in, redirect to index
     res.render('validate')
 });
 
 // PROTECTED ROUTES 
 app.get('/feed', [protect_route, feed.get_feed], (req, res) => {
-    console.log(req.feed)
     res.render('feed', {feed: req.feed})
-})
-
-app.get('/test', feed.get_feed, (req, res) => {
-    res.render('index')
 })
 
 app.get('/browse', protect_route, (req, res) => {
     res.render('browse');
 })
 
-
-app.listen(port, () => console.log(`Example app listening at http://localhost:${port}`));
+app.listen(port, () => console.log(chalk.yellow('[STATUS]:'), `listening at http://localhost:${port}`));

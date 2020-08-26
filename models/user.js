@@ -27,8 +27,6 @@ class User {
 
     load(db_result, password) {
         if (this.checkPassword(password, db_result.salt, db_result.password_hash)) {
-            console.log("Logging in!!")
-            console.log(db_result)
             this.username = db_result.username;
             this.email = db_result.email;
             this.salt = db_result.salt;

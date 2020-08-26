@@ -1,7 +1,12 @@
 mixin navigation
     navbar
         a(href="/") Home
-        a(href="/login") Login
-        a(href="/register") Sign Up
-        a(href="/logout") Logout
-        a(href="/browse") Browse
+        if current_user == undefined
+            a(href="/login") Login
+            a(href="/register") Sign Up
+        else
+            a(href="/logout") Logout
+            a(href="/browse") Browse
+            a(href="/feed") Feed
+        
+        
